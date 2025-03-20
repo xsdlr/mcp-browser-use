@@ -39,7 +39,6 @@ from .custom_views import CustomAgentOutput, CustomAgentStepInfo
 
 logger = logging.getLogger(__name__)
 
-
 class CustomAgent(Agent):
     def __init__(
         self,
@@ -278,7 +277,12 @@ class CustomAgent(Agent):
                     )
                 ]
             for ret_ in result:
-                if "Extracted page" in ret_.extracted_content:
+                logger.info(f"🛠️ Action Result: {ret_.model_dump_json(exclude_unset=True)}")
+                if ret_.error:
+                    self.consecutive_failures += 1
+                else:
+                    self.consecutive_failures = 0
+                if ret_.extracted_content and "Extracted page" in ret_.extracted_content:
                     # record every extracted page
                     self.extracted_content += ret_.extracted_content
             self._last_result = result

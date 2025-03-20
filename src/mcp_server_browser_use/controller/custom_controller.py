@@ -55,17 +55,19 @@ class CustomController(Controller):
         )
         async def extract_content(params: ExtractPageContentAction, browser: BrowserContext):
             page = await browser.get_current_page()
+            # logger.info(f"page_content: {page_content}, page: {page}")
             # use jina reader
-            url = page.url
-            jina_url = f"https://r.jina.ai/{url}"
-            await page.goto(jina_url)
+            # url = page.url
+            # jina_url = f"https://r.jina.ai/{url}"
+            # await page.goto(jina_url)
+            page_content=await page.content()
             output_format = 'markdown' if params.include_links else 'text'
             content = MainContentExtractor.extract(  # type: ignore
-                html=await page.content(),
+                html=page_content,
                 output_format=output_format,
             )
             # go back to org url
-            await page.go_back()
+            # await page.go_back()
             msg = f'📄  Extracted page content as {output_format}\n: {content}\n'
             logger.info(msg)
             return ActionResult(extracted_content=msg)

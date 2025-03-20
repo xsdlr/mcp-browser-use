@@ -3,6 +3,7 @@ import os
 import sys
 import traceback
 from typing import List, Optional
+import datetime
 
 import logging
 logging.getLogger().addHandler(logging.NullHandler())
@@ -30,7 +31,21 @@ _global_browser = None
 _global_browser_context = None
 _global_agent_state = AgentState()
 
-app = FastMCP("mcp_server_browser_use")
+app = FastMCP("mcp_server_browser_use", logging_level="INFO")
+
+
+def setup_logging():
+    current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    logs_dir = os.path.join(os.path.dirname(__file__), "logs")
+    log_file = os.path.join(logs_dir, f"log_{current_date}.log")
+
+    file_handler = logging.FileHandler(log_file, encoding="utf-8", mode="a")
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    file_handler.setFormatter(formatter)
+    logging.getLogger().addHandler(file_handler)
 
 
 def get_env_bool(key: str, default: bool = False) -> bool:
@@ -86,6 +101,7 @@ async def run_browser_agent(task: str, add_infos: str = "") -> str:
         disable_security = get_env_bool("BROWSER_DISABLE_SECURITY", False)
         window_w = int(os.getenv("BROWSER_WINDOW_WIDTH", "1280"))
         window_h = int(os.getenv("BROWSER_WINDOW_HEIGHT", "720"))
+        chrome_path = os.getenv("CHROME_PATH")
 
         # Get agent configuration
         model_provider = os.getenv("MCP_MODEL_PROVIDER", "anthropic")
@@ -95,9 +111,13 @@ async def run_browser_agent(task: str, add_infos: str = "") -> str:
         use_vision = get_env_bool("MCP_USE_VISION", True)
         max_actions_per_step = int(os.getenv("MCP_MAX_ACTIONS_PER_STEP", "5"))
         tool_calling_method = os.getenv("MCP_TOOL_CALLING_METHOD", "auto")
+        is_full_screen = get_env_bool("BROWSER_IS_FULL_SCREEN", False)
 
         # Configure browser window size
-        extra_chromium_args = [f"--window-size={window_w},{window_h}"]
+        if is_full_screen:
+            extra_chromium_args =["--start-maximized"]
+        else:
+            extra_chromium_args = [f"--window-size={window_w},{window_h}"]
 
         # Initialize browser if needed
         if not _global_browser:
@@ -106,6 +126,7 @@ async def run_browser_agent(task: str, add_infos: str = "") -> str:
                     headless=headless,
                     disable_security=disable_security,
                     extra_chromium_args=extra_chromium_args,
+                    chrome_instance_path=chrome_path,
                 )
             )
 
@@ -167,6 +188,7 @@ async def run_browser_agent(task: str, add_infos: str = "") -> str:
 
 
 def main():
+    setup_logging()
     app.run()
 
 
